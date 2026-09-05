@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0f1e;
+}
+
+body {
+  background-color: var(--bg);
+  color: #e2e8f0;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d1630; }
+::-webkit-scrollbar-thumb { background: #1e3a7a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+/* Glow pulse for severity badge */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px currentColor; }
+  50%       { box-shadow: 0 0 18px currentColor; }
+}
+.glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+/* Timeline connector line */
+.timeline-connector {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, #1e3a7a, #3b82f6);
+  min-width: 24px;
+}
