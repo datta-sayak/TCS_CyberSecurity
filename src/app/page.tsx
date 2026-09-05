@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { extractCandidateIocs } from "@/lib/ioc-regex";
@@ -10,11 +10,13 @@ import AttackTimeline from "@/components/AttackTimeline";
 import IocTable from "@/components/IocTable";
 import Recommendations from "@/components/Recommendations";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import FileUploader from "@/components/FileUploader";
 
 type AppState = "idle" | "loading" | "result" | "error";
 
 export default function Home() {
   const [reportText, setReportText] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [state, setState] = useState<AppState>("idle");
@@ -22,6 +24,15 @@ export default function Home() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const canAnalyze = reportText.trim().length > 50 && apiKey.trim().length > 10;
+
+  function handleTextExtracted(text: string, fileName: string) {
+    setReportText(text);
+    setUploadedFileName(fileName);
+    // Reset any previous results when a new file is uploaded
+    setResult(null);
+    setState("idle");
+    setErrorMsg("");
+  }
 
   async function handleAnalyze() {
     if (!canAnalyze) return;
@@ -55,19 +66,21 @@ export default function Home() {
   const maliciousCount = result?.iocs.filter((i) => i.verdict === "malicious").length ?? 0;
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] text-slate-200 pb-16">
+    <main className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5] pb-16">
       {/* ── Header ── */}
-      <header className="border-b border-blue-900/50 bg-[#0d1630]/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-[#222222] bg-[#111111] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-lg">
-              🛡️
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
             </div>
             <div>
               <h1 className="text-lg font-bold text-white leading-tight">
                 Cyber Threat Report Summarizer
               </h1>
-              <p className="text-xs text-blue-400 font-medium tracking-wide">
+              <p className="text-xs text-[#888888] font-medium tracking-wide">
                 IOC Extractor &amp; ATT&amp;CK Mapper · Powered by Gemini
               </p>
             </div>
@@ -78,14 +91,14 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-6 pt-8 space-y-8">
 
         {/* ── Input Panel ── */}
-        <section className="bg-[#0d1630] border border-blue-900/40 rounded-2xl p-6 shadow-xl">
-          <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-widest mb-4">
-            📋 Paste Threat Report
+        <section className="bg-[#111111] border border-[#222222] rounded-2xl p-6 shadow-xl">
+          <h2 className="text-sm font-semibold text-[#aaaaaa] uppercase tracking-widest mb-5">
+            Upload Threat Report
           </h2>
 
           {/* API Key */}
-          <div className="mb-4">
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">
+          <div className="mb-5">
+            <label className="block text-xs text-[#888888] mb-1.5 font-medium">
               Gemini API Key
             </label>
             <div className="relative">
@@ -94,46 +107,53 @@ export default function Home() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="AIza..."
-                className="w-full bg-[#111d40] border border-blue-900/50 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono pr-20"
+                className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-4 py-2.5 text-sm text-[#e5e5e5] placeholder-[#444444] focus:outline-none focus:ring-2 focus:ring-white font-mono pr-20"
               />
               <button
                 onClick={() => setShowKey((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#888888] hover:text-white transition-colors"
               >
                 {showKey ? "Hide" : "Show"}
               </button>
             </div>
-            <p className="text-xs text-slate-600 mt-1">
+            <p className="text-xs text-[#555555] mt-1">
               Your key is never stored — stays in memory for this session only.
             </p>
           </div>
 
-          {/* Textarea */}
-          <textarea
-            value={reportText}
-            onChange={(e) => setReportText(e.target.value)}
-            placeholder="Paste your threat intelligence report here (plain text)…&#10;&#10;Example: On March 14, the attacker leveraged CVE-2024-1234 to gain initial access via a phishing email. The malware beacon contacted 192.168.1.100 and evil-c2.ru. SHA256: d3adb33fd3adb33fd3adb33fd3adb33fd3adb33fd3adb33fd3adb33fd3adb33f"
-            rows={10}
-            className="w-full bg-[#111d40] border border-blue-900/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y font-mono leading-relaxed"
+          {/* File Uploader */}
+          <FileUploader
+            onTextExtracted={handleTextExtracted}
+            disabled={state === "loading"}
           />
 
+          {/* Status + Analyze row */}
           <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
-            <span className="text-xs text-slate-500">
-              {reportText.length.toLocaleString()} characters
-              {reportText.length > 0 && ` · ~${Math.round(reportText.split(/\s+/).length / 4)} tokens est.`}
+            <span className="text-xs text-[#666666]">
+              {reportText.length > 0 ? (
+                <>
+                  {uploadedFileName && (
+                    <span className="font-mono text-[#888888] mr-2">{uploadedFileName}</span>
+                  )}
+                  {reportText.length.toLocaleString()} chars
+                  {` · ~${Math.round(reportText.split(/\s+/).length / 4)} tokens est.`}
+                </>
+              ) : (
+                "No report loaded"
+              )}
             </span>
             <button
               onClick={handleAnalyze}
               disabled={!canAnalyze || state === "loading"}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 text-sm shadow-lg shadow-blue-900/40 hover:shadow-blue-500/30 flex items-center gap-2"
+              className="px-6 py-2.5 bg-white hover:bg-[#e5e5e5] disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-all duration-200 text-sm flex items-center gap-2"
             >
               {state === "loading" ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
                   Analyzing…
                 </>
               ) : (
-                <>⚡ Analyze with Gemini</>
+                <>Analyze with Gemini</>
               )}
             </button>
           </div>
@@ -144,19 +164,22 @@ export default function Home() {
 
         {/* ── Error ── */}
         {state === "error" && (
-          <div className="bg-red-950/40 border border-red-700/50 rounded-2xl p-6">
+          <div className="bg-[#1a0a0a] border border-[#4a1a1a] rounded-2xl p-6">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
+              <svg className="w-5 h-5 text-[#cc4444] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
               <div className="flex-1">
-                <h3 className="text-red-400 font-semibold mb-2">Analysis Failed</h3>
-                <pre className="text-xs text-red-300/80 whitespace-pre-wrap font-mono bg-red-950/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <h3 className="text-[#cc4444] font-semibold mb-2">Analysis Failed</h3>
+                <pre className="text-xs text-[#aa3333] whitespace-pre-wrap font-mono bg-[#150808] rounded-lg p-3 max-h-48 overflow-y-auto">
                   {errorMsg}
                 </pre>
                 <button
                   onClick={handleAnalyze}
-                  className="mt-3 px-4 py-2 bg-red-700 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                  className="mt-3 px-4 py-2 bg-[#cc4444] hover:bg-[#aa3333] text-white text-sm font-semibold rounded-lg transition-colors"
                 >
-                  🔄 Retry
+                  Retry
                 </button>
               </div>
             </div>
@@ -185,10 +208,10 @@ export default function Home() {
             </div>
 
             {/* 4. Export Row */}
-            <div className="bg-[#0d1630] border border-blue-900/40 rounded-2xl p-5 flex flex-wrap items-center gap-4">
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-wrap items-center gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-300">Export Results</p>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm font-semibold text-[#e5e5e5]">Export Results</p>
+                <p className="text-xs text-[#666666] mt-0.5">
                   {maliciousCount} malicious IOC{maliciousCount !== 1 ? "s" : ""} ·{" "}
                   {result.techniques.length} ATT&amp;CK technique
                   {result.techniques.length !== 1 ? "s" : ""}
@@ -197,16 +220,16 @@ export default function Home() {
               <button
                 onClick={handleExportCsv}
                 disabled={maliciousCount === 0}
-                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-white hover:bg-[#e5e5e5] disabled:opacity-30 disabled:cursor-not-allowed text-black font-semibold rounded-xl text-sm transition-colors"
               >
-                📊 Export IOCs as CSV
+                Export IOCs as CSV
               </button>
               <button
                 onClick={handleExportStix}
                 disabled={maliciousCount === 0 && result.techniques.length === 0}
-                className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#222222] hover:bg-[#333333] disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors border border-[#444444]"
               >
-                📦 Export as STIX 2.1
+                Export as STIX 2.1
               </button>
             </div>
           </>
@@ -215,4 +238,3 @@ export default function Home() {
     </main>
   );
 }
-

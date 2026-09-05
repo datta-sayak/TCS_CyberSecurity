@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "mammoth": "^1.12.2",
     "next": "latest",
+    "pdfjs-dist": "^6.3.289",
     "react": "latest",
     "react-dom": "latest"
   },

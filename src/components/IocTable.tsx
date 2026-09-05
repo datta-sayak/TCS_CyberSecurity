@@ -4,22 +4,22 @@ import { useState } from "react";
 import type { AnalysisIoc } from "@/lib/gemini";
 
 const VERDICT_CONFIG = {
-  malicious:     { label: "MALICIOUS",     bg: "bg-red-900/40",     border: "border-red-700/50",     text: "text-red-300",     dot: "bg-red-400",     icon: "🔴" },
-  benign_example:{ label: "BENIGN",        bg: "bg-emerald-900/30", border: "border-emerald-700/40", text: "text-emerald-300", dot: "bg-emerald-400", icon: "🟢" },
-  uncertain:     { label: "UNCERTAIN",     bg: "bg-yellow-900/30",  border: "border-yellow-700/40",  text: "text-yellow-300",  dot: "bg-yellow-400",  icon: "🟡" },
+  malicious:      { label: "MALICIOUS", bg: "bg-[#1a0a0a]", border: "border-[#4a1a1a]", text: "text-[#cc4444]", dot: "bg-[#cc4444]" },
+  benign_example: { label: "BENIGN",    bg: "bg-[#0a1a0a]", border: "border-[#1a3a1a]", text: "text-[#aaaaaa]", dot: "bg-[#888888]" },
+  uncertain:      { label: "UNCERTAIN", bg: "bg-[#1a1a0a]", border: "border-[#3a3a1a]", text: "text-[#cccccc]", dot: "bg-[#666666]" },
 };
 
-const TYPE_ICON: Record<string, string> = {
-  ip:     "🌐",
-  domain: "🔗",
-  hash:   "🔒",
-  cve:    "⚠️",
+const TYPE_LABEL: Record<string, string> = {
+  ip:     "IP",
+  domain: "Domain",
+  hash:   "Hash",
+  cve:    "CVE",
 };
 
 const CONF_DOT: Record<string, string> = {
-  high:   "bg-emerald-400 shadow-[0_0_5px_#34d399]",
-  medium: "bg-yellow-400 shadow-[0_0_5px_#fbbf24]",
-  low:    "bg-slate-500",
+  high:   "bg-white",
+  medium: "bg-[#888888]",
+  low:    "bg-[#444444]",
 };
 
 type FilterVerdict = "all" | "malicious" | "benign_example" | "uncertain";
@@ -40,9 +40,9 @@ export default function IocTable({ iocs }: Props) {
   };
 
   return (
-    <div className="bg-[#0d1630] border border-blue-900/40 rounded-2xl p-5 shadow-xl h-full">
-      <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-widest mb-4">
-        🔎 IOC Analysis
+    <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl h-full">
+      <h2 className="text-sm font-semibold text-[#aaaaaa] uppercase tracking-widest mb-4">
+        IOC Analysis
       </h2>
 
       {/* Filter tabs */}
@@ -53,8 +53,8 @@ export default function IocTable({ iocs }: Props) {
             onClick={() => setFilter(v)}
             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
               filter === v
-                ? "bg-blue-600 text-white"
-                : "bg-[#111d40] text-slate-400 hover:text-slate-200"
+                ? "bg-white text-black"
+                : "bg-[#1a1a1a] text-[#888888] hover:text-white border border-[#333333]"
             }`}
           >
             {v === "all" ? "All" : v === "benign_example" ? "Benign" : v.charAt(0).toUpperCase() + v.slice(1)}
@@ -65,16 +65,16 @@ export default function IocTable({ iocs }: Props) {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="text-center text-slate-500 text-sm py-8">No IOCs match this filter</div>
+        <div className="text-center text-[#555555] text-sm py-8">No IOCs match this filter</div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-blue-900/30">
+        <div className="overflow-x-auto rounded-xl border border-[#222222]">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-[#111d40] border-b border-blue-900/30">
-                <th className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wide">Type</th>
-                <th className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wide">Value</th>
-                <th className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wide">Verdict</th>
-                <th className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wide">Conf.</th>
+              <tr className="bg-[#1a1a1a] border-b border-[#333333]">
+                <th className="text-left px-3 py-2.5 text-[#888888] font-semibold uppercase tracking-wide">Type</th>
+                <th className="text-left px-3 py-2.5 text-[#888888] font-semibold uppercase tracking-wide">Value</th>
+                <th className="text-left px-3 py-2.5 text-[#888888] font-semibold uppercase tracking-wide">Verdict</th>
+                <th className="text-left px-3 py-2.5 text-[#888888] font-semibold uppercase tracking-wide">Conf.</th>
               </tr>
             </thead>
             <tbody>
@@ -87,13 +87,12 @@ export default function IocTable({ iocs }: Props) {
                     <tr
                       key={idx}
                       onClick={() => setExpandedRow(isExpanded ? null : idx)}
-                      className="border-b border-blue-900/20 hover:bg-blue-900/10 cursor-pointer transition-colors"
+                      className="border-b border-[#1e1e1e] hover:bg-[#1a1a1a] cursor-pointer transition-colors"
                     >
                       <td className="px-3 py-2.5">
-                        <span title={ioc.type}>{TYPE_ICON[ioc.type] ?? "📌"}</span>
-                        <span className="ml-1.5 text-slate-400 uppercase">{ioc.type}</span>
+                        <span className="text-[#888888] uppercase font-mono">{TYPE_LABEL[ioc.type] ?? ioc.type}</span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-slate-200 max-w-[180px] truncate" title={ioc.value}>
+                      <td className="px-3 py-2.5 font-mono text-[#e5e5e5] max-w-[180px] truncate" title={ioc.value}>
                         {ioc.value}
                       </td>
                       <td className="px-3 py-2.5">
@@ -105,15 +104,15 @@ export default function IocTable({ iocs }: Props) {
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <div className={`w-2 h-2 rounded-full ${CONF_DOT[ioc.confidence] ?? CONF_DOT.low}`} />
-                          <span className="text-slate-400 capitalize">{ioc.confidence}</span>
+                          <span className="text-[#666666] capitalize">{ioc.confidence}</span>
                         </div>
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${idx}-expanded`} className="bg-[#0a0f1e]">
+                      <tr key={`${idx}-expanded`} className="bg-[#0a0a0a]">
                         <td colSpan={4} className="px-4 py-3">
-                          <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide mb-1">Source Sentence</div>
-                          <p className="text-slate-300 text-xs italic leading-relaxed">
+                          <div className="text-[10px] text-[#888888] font-semibold uppercase tracking-wide mb-1">Source Sentence</div>
+                          <p className="text-[#cccccc] text-xs italic leading-relaxed">
                             &ldquo;{ioc.source_sentence}&rdquo;
                           </p>
                         </td>
