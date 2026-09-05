@@ -1,11 +1,39 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useCallback, DragEvent, ChangeEvent } from "react";
+import { z } from "zod";
 import {
   extractTextFromFile,
   ACCEPTED_EXTENSIONS,
   ACCEPTED_MIMES,
 } from "@/lib/file-extract";
+
+// ── Zod File Schema ────────────────────────────────────────────────────────────
+// Validates the raw File object before we spend any time parsing it.
+
+const ACCEPTED_EXT_LIST = ACCEPTED_EXTENSIONS.split(",").map((e) => e.replace(".", "").toLowerCase());
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const FileSchema = z
+  .instanceof(File, { message: "Expected a File object" })
+  .refine((f) => f.size > 0, {
+    message: "File is empty (0 bytes).",
+  })
+  .refine((f) => f.size <= MAX_FILE_SIZE_BYTES, {
+    message: `File exceeds the ${MAX_FILE_SIZE_MB} MB size limit.`,
+  })
+  .refine(
+    (f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      return ACCEPTED_MIMES.includes(f.type) || ACCEPTED_EXT_LIST.includes(ext);
+    },
+    {
+      message: `Unsupported file type. Accepted: ${ACCEPTED_EXT_LIST.join(", ")}.`,
+    }
+  );
+
+// ── Types & Helpers ────────────────────────────────────────────────────────────
 
 interface Props {
   onTextExtracted: (text: string, fileName: string) => void;
@@ -21,6 +49,8 @@ function formatBytes(bytes: number): string {
 }
 
 const FORMAT_BADGES = ["TXT", "MD", "PDF", "DOCX", "HTML", "JSON", "CSV", "RTF"];
+
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export default function FileUploader({ onTextExtracted, disabled }: Props) {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -38,24 +68,30 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
       setFileName(file.name);
       setFileSize(file.size);
 
-      // Basic MIME / extension guard
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const accepted = ACCEPTED_MIMES.includes(file.type) ||
-        ACCEPTED_EXTENSIONS.split(",").map((e) => e.replace(".", "")).includes(ext);
-
-      if (!accepted) {
+      // ── Zod file validation ──
+      const validation = FileSchema.safeParse(file);
+      if (!validation.success) {
         setUploadState("error");
-        setErrorMsg(`Unsupported file type ".${ext}". Accepted: ${FORMAT_BADGES.join(", ")}`);
+        setErrorMsg(validation.error.issues[0].message);
         return;
       }
 
       try {
         const text = await extractTextFromFile(file);
+
         if (!text.trim()) {
           setUploadState("error");
           setErrorMsg("The file appears to be empty or could not be parsed.");
           return;
         }
+
+        // Warn if content is very large (still process it, let gemini.ts enforce the hard limit)
+        if (text.length > 80_000) {
+          setErrorMsg(
+            `⚠️ Extracted ${(text.length / 1000).toFixed(0)} KB of text — this may exceed the analysis limit. Consider trimming the report.`
+          );
+        }
+
         setCharCount(text.length);
         setUploadState("done");
         onTextExtracted(text, file.name);
@@ -82,7 +118,6 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
     (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) processFile(file);
-      // Reset input so the same file can be re-selected
       e.target.value = "";
     },
     [processFile]
@@ -107,12 +142,12 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         className={[
           "relative border-2 border-dashed rounded-xl transition-all duration-200 cursor-pointer select-none",
           isDragOver
-            ? "border-white bg-[#1a1a1a]"
+            ? "border-blue-400 bg-blue-950/20"
             : uploadState === "done"
-            ? "border-[#444444] bg-[#111111]"
+            ? "border-blue-900/50 bg-[#0d1630]"
             : uploadState === "error"
-            ? "border-[#4a1a1a] bg-[#1a0a0a]"
-            : "border-[#333333] bg-[#0a0a0a] hover:border-[#555555] hover:bg-[#111111]",
+            ? "border-red-700/50 bg-red-950/20"
+            : "border-blue-900/40 bg-[#0d1630] hover:border-blue-600/50 hover:bg-[#111d40]",
           (disabled || uploadState === "parsing") ? "cursor-not-allowed opacity-50" : "",
         ].join(" ")}
       >
@@ -127,25 +162,25 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
 
         {/* ── Idle ── */}
         {uploadState === "idle" && (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 px-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-[#333333] flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex flex-col items-center justify-center gap-3 py-10 px-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-900/30 border border-blue-700/40 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#e5e5e5]">
+              <p className="text-sm font-semibold text-slate-200">
                 {isDragOver ? "Drop file here" : "Drop your report or click to browse"}
               </p>
-              <p className="text-xs text-[#666666] mt-1">
-                Supports PDF, DOCX, TXT, MD, HTML, JSON, CSV, RTF
+              <p className="text-xs text-slate-500 mt-1">
+                Max {MAX_FILE_SIZE_MB} MB · PDF, DOCX, TXT, MD, HTML, JSON, CSV, RTF
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5 justify-center mt-1">
               {FORMAT_BADGES.map((fmt) => (
-                <span key={fmt} className="px-2 py-0.5 bg-[#1a1a1a] border border-[#333333] rounded text-[10px] font-mono text-[#888888]">
+                <span key={fmt} className="px-2 py-0.5 bg-blue-900/30 border border-blue-800/40 rounded text-[10px] font-mono text-blue-400">
                   {fmt}
                 </span>
               ))}
@@ -155,32 +190,38 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
 
         {/* ── Parsing ── */}
         {uploadState === "parsing" && (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 px-6">
-            <div className="w-8 h-8 border-2 border-[#333333] border-t-white rounded-full animate-spin" />
-            <p className="text-sm text-[#888888]">Parsing <span className="text-white font-mono">{fileName}</span>…</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-10 px-6">
+            <div className="w-8 h-8 border-2 border-blue-900/50 border-t-blue-500 rounded-full animate-spin" />
+            <p className="text-sm text-slate-400">
+              Parsing <span className="text-white font-mono">{fileName}</span>…
+            </p>
           </div>
         )}
 
         {/* ── Done ── */}
         {uploadState === "done" && (
           <div className="flex items-center gap-4 px-5 py-4">
-            <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333333] flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e5e5e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-10 h-10 rounded-full bg-blue-900/30 border border-blue-700/40 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{fileName}</p>
-              <p className="text-xs text-[#888888] mt-0.5">
+              <p className="text-sm font-semibold text-slate-200 truncate">{fileName}</p>
+              <p className="text-xs text-slate-500 mt-0.5">
                 {formatBytes(fileSize)} · {charCount.toLocaleString()} characters extracted
               </p>
+              {/* Show soft warning if oversized (non-blocking) */}
+              {errorMsg && (
+                <p className="text-xs text-yellow-400 mt-1 leading-relaxed">{errorMsg}</p>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span className="text-xs text-[#aaaaaa] font-medium">Ready</span>
+              <span className="text-xs text-emerald-400 font-medium">Ready</span>
             </div>
           </div>
         )}
@@ -188,24 +229,26 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         {/* ── Error ── */}
         {uploadState === "error" && (
           <div className="flex items-start gap-4 px-5 py-4">
-            <div className="w-10 h-10 rounded-full bg-[#1a0a0a] border border-[#4a1a1a] flex items-center justify-center flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cc4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            <div className="w-10 h-10 rounded-full bg-red-950/40 border border-red-700/40 flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#cc4444]">Upload Failed</p>
-              <p className="text-xs text-[#aa3333] mt-0.5 leading-relaxed">{errorMsg}</p>
+              <p className="text-sm font-semibold text-red-400">Upload Failed</p>
+              <p className="text-xs text-red-300/80 mt-0.5 leading-relaxed">{errorMsg}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Actions row */}
+      {/* Reset button */}
       {(uploadState === "done" || uploadState === "error") && (
         <button
           onClick={(e) => { e.stopPropagation(); handleReset(); }}
-          className="text-xs text-[#888888] hover:text-white transition-colors flex items-center gap-1.5"
+          className="text-xs text-slate-500 hover:text-slate-200 transition-colors flex items-center gap-1.5"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="1 4 1 10 7 10"/>
