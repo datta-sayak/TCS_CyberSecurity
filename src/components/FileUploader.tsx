@@ -142,12 +142,12 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         className={[
           "relative border-2 border-dashed rounded-xl transition-all duration-200 cursor-pointer select-none",
           isDragOver
-            ? "border-blue-400 bg-blue-950/20"
+            ? "border-neutral-500 bg-neutral-900/20"
             : uploadState === "done"
-            ? "border-blue-900/50 bg-[#0d1630]"
+            ? "border-neutral-800/50 bg-[#111111]"
             : uploadState === "error"
             ? "border-red-700/50 bg-red-950/20"
-            : "border-blue-900/40 bg-[#0d1630] hover:border-blue-600/50 hover:bg-[#111d40]",
+            : "border-neutral-800/40 bg-[#111111] hover:border-neutral-700/50 hover:bg-[#1a1a1a]",
           (disabled || uploadState === "parsing") ? "cursor-not-allowed opacity-50" : "",
         ].join(" ")}
       >
@@ -163,8 +163,8 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         {/* ── Idle ── */}
         {uploadState === "idle" && (
           <div className="flex flex-col items-center justify-center gap-3 py-10 px-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-900/30 border border-blue-700/40 flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-12 h-12 rounded-full bg-neutral-800/30 border border-neutral-700/40 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
@@ -180,7 +180,7 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
             </div>
             <div className="flex flex-wrap gap-1.5 justify-center mt-1">
               {FORMAT_BADGES.map((fmt) => (
-                <span key={fmt} className="px-2 py-0.5 bg-blue-900/30 border border-blue-800/40 rounded text-[10px] font-mono text-blue-400">
+                <span key={fmt} className="px-2 py-0.5 bg-neutral-800/30 border border-neutral-800/40 rounded text-[10px] font-mono text-neutral-400">
                   {fmt}
                 </span>
               ))}
@@ -191,7 +191,7 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         {/* ── Parsing ── */}
         {uploadState === "parsing" && (
           <div className="flex flex-col items-center justify-center gap-3 py-10 px-6">
-            <div className="w-8 h-8 border-2 border-blue-900/50 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-neutral-800/50 border-t-neutral-500 rounded-full animate-spin" />
             <p className="text-sm text-slate-400">
               Parsing <span className="text-white font-mono">{fileName}</span>…
             </p>
@@ -201,8 +201,8 @@ export default function FileUploader({ onTextExtracted, disabled }: Props) {
         {/* ── Done ── */}
         {uploadState === "done" && (
           <div className="flex items-center gap-4 px-5 py-4">
-            <div className="w-10 h-10 rounded-full bg-blue-900/30 border border-blue-700/40 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-10 h-10 rounded-full bg-neutral-800/30 border border-neutral-700/40 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
